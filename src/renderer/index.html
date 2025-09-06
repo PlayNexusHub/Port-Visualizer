@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <title>PlayNexus Port Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="../../assets/playnexus-logo.png" alt="PlayNexus" class="logo" onerror="this.style.display='none'">
+                    <h1>Port Visualizer</h1>
+                </div>
+                <div class="header-actions">
+                    <button id="settingsBtn" class="btn btn-secondary" title="Settings">
+                        <span class="icon">⚙️</span>
+                    </button>
+                    <button id="helpBtn" class="btn btn-secondary" title="Help">
+                        <span class="icon">❓</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Scan Configuration -->
+            <section class="scan-section">
+                <div class="scan-config">
+                    <div class="scan-tabs">
+                        <button class="scan-tab active" data-tab="port-scan">Port Scan</button>
+                        <button class="scan-tab" data-tab="network-discovery">Network Discovery</button>
+                        <button class="scan-tab" data-tab="ping-sweep">Ping Sweep</button>
+                    </div>
+
+                    <!-- Port Scan Tab -->
+                    <div id="portScanTab" class="scan-tab-content active">
+                        <div class="input-group">
+                            <label for="targetInput">Target (IP/Hostname):</label>
+                            <input type="text" id="targetInput" placeholder="192.168.1.1 or example.com" class="target-input">
+                        </div>
+                        
+                        <div class="scan-options">
+                            <div class="option-group">
+                                <label>Port Range:</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="portRange" value="common" checked> Common Ports</label>
+                                    <label><input type="radio" name="portRange" value="custom"> Custom Ports</label>
+                                    <label><input type="radio" name="portRange" value="all"> All Ports (1-65535)</label>
+                                </div>
+                            </div>
+                            
+                            <div class="option-group" id="customPortsGroup" style="display: none;">
+                                <label for="customPorts">Custom Ports:</label>
+                                <input type="text" id="customPorts" placeholder="22,80,443,8080" class="custom-ports-input">
+                            </div>
+                        </div>
+
+                        <div class="scan-controls">
+                            <button id="startPortScanBtn" class="btn btn-primary">
+                                <span class="icon">🔍</span>
+                                Start Port Scan
+                            </button>
+                            <button id="stopScanBtn" class="btn btn-danger" disabled>
+                                <span class="icon">⏹️</span>
+                                Stop Scan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Network Discovery Tab -->
+                    <div id="networkDiscoveryTab" class="scan-tab-content">
+                        <div class="input-group">
+                            <label for="subnetInput">Subnet (CIDR):</label>
+                            <input type="text" id="subnetInput" placeholder="192.168.1.0/24" class="subnet-input">
+                            <button id="detectSubnetBtn" class="btn btn-secondary">Auto-detect</button>
+                        </div>
+
+                        <div class="scan-controls">
+                            <button id="startDiscoveryBtn" class="btn btn-primary">
+                                <span class="icon">🌐</span>
+                                Discover Network
+                            </button>
+                            <button id="stopDiscoveryBtn" class="btn btn-danger" disabled>
+                                <span class="icon">⏹️</span>
+                                Stop Discovery
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Ping Sweep Tab -->
+                    <div id="pingSweepTab" class="scan-tab-content">
+                        <div class="input-group">
+                            <label for="pingTargetInput">Target (IP/Hostname):</label>
+                            <input type="text" id="pingTargetInput" placeholder="google.com or 8.8.8.8" class="ping-input">
+                        </div>
+
+                        <div class="scan-controls">
+                            <button id="startPingBtn" class="btn btn-primary">
+                                <span class="icon">📡</span>
+                                Ping Host
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="progressSection" class="progress-section hidden">
+                    <div class="progress-header">
+                        <h3 id="progressTitle">Scanning...</h3>
+                        <div class="progress-stats">
+                            <span id="progressText">0 / 0 (0%)</span>
+                            <span id="progressTime">00:00</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-details">
+                        <div class="stat-item">
+                            <span class="stat-label">Found:</span>
+                            <span id="foundCount">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Rate:</span>
+                            <span id="scanRate">0/s</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section">
+                <div id="noResults" class="no-results">
+                    <div class="no-results-icon">🎯</div>
+                    <h3>Ready to Scan</h3>
+                    <p>Configure your scan settings above and click start to begin network analysis.</p>
+                </div>
+
+                <!-- Results Content -->
+                <div id="resultsContent" class="results-content hidden">
+                    <!-- Results Header -->
+                    <div class="results-header">
+                        <div class="results-summary">
+                            <h3 id="resultsTitle">Scan Results</h3>
+                            <div class="summary-stats">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="totalHostsFound">0</div>
+                                    <div class="stat-label">Hosts Found</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="totalOpenPorts">0</div>
+                                    <div class="stat-label">Open Ports</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="scanDuration">0s</div>
+                                    <div class="stat-label">Scan Time</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="results-actions">
+                            <button id="exportBtn" class="btn btn-secondary">
+                                <span class="icon">📄</span>
+                                Export
+                            </button>
+                            <button id="visualizeBtn" class="btn btn-secondary">
+                                <span class="icon">📊</span>
+                                Visualize
+                            </button>
+                            <button id="newScanBtn" class="btn btn-primary">
+                                <span class="icon">🔄</span>
+                                New Scan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Results Tabs -->
+                    <div class="results-tabs">
+                        <button class="results-tab active" data-tab="hosts">Hosts</button>
+                        <button class="results-tab" data-tab="ports">Ports</button>
+                        <button class="results-tab" data-tab="services">Services</button>
+                        <button class="results-tab" data-tab="visualization">Network Map</button>
+                    </div>
+
+                    <!-- Results Tab Content -->
+                    <div class="results-tab-content">
+                        <!-- Hosts Tab -->
+                        <div id="hostsTab" class="results-tab-pane active">
+                            <div class="table-controls">
+                                <input type="text" id="hostsFilter" placeholder="Filter hosts..." class="filter-input">
+                                <select id="hostsSort" class="sort-select">
+                                    <option value="ip">Sort by IP</option>
+                                    <option value="hostname">Sort by Hostname</option>
+                                    <option value="ports">Sort by Open Ports</option>
+                                    <option value="response">Sort by Response Time</option>
+                                </select>
+                            </div>
+                            <div id="hostsTable" class="data-table"></div>
+                        </div>
+
+                        <!-- Ports Tab -->
+                        <div id="portsTab" class="results-tab-pane">
+                            <div class="table-controls">
+                                <input type="text" id="portsFilter" placeholder="Filter ports..." class="filter-input">
+                                <select id="portsStateFilter" class="filter-select">
+                                    <option value="all">All States</option>
+                                    <option value="open">Open Only</option>
+                                    <option value="closed">Closed Only</option>
+                                    <option value="filtered">Filtered Only</option>
+                                </select>
+                            </div>
+                            <div id="portsTable" class="data-table"></div>
+                        </div>
+
+                        <!-- Services Tab -->
+                        <div id="servicesTab" class="results-tab-pane">
+                            <div id="servicesChart" class="chart-container"></div>
+                            <div id="servicesTable" class="data-table"></div>
+                        </div>
+
+                        <!-- Visualization Tab -->
+                        <div id="visualizationTab" class="results-tab-pane">
+                            <div class="visualization-controls">
+                                <button id="layoutBtn" class="btn btn-secondary">Change Layout</button>
+                                <button id="zoomFitBtn" class="btn btn-secondary">Zoom to Fit</button>
+                                <button id="exportMapBtn" class="btn btn-secondary">Export Map</button>
+                            </div>
+                            <div id="networkMap" class="network-map"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Settings</h3>
+                    <button class="modal-close" id="closeSettings">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="setting-group">
+                        <label for="timeoutSetting">Connection Timeout (ms)</label>
+                        <input type="number" id="timeoutSetting" min="1000" max="30000" value="5000">
+                    </div>
+                    <div class="setting-group">
+                        <label for="threadsSetting">Concurrent Threads</label>
+                        <input type="number" id="threadsSetting" min="1" max="200" value="50">
+                    </div>
+                    <div class="setting-group">
+                        <label for="themeSetting">Theme</label>
+                        <select id="themeSetting">
+                            <option value="dark">Dark</option>
+                            <option value="light">Light</option>
+                            <option value="auto">Auto</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>
+                            <input type="checkbox" id="saveHistorySetting" checked>
+                            Save scan history
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="saveSettings" class="btn btn-primary">Save Settings</button>
+                    <button id="resetSettings" class="btn btn-secondary">Reset to Defaults</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Modal -->
+        <div id="helpModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Help & Support</h3>
+                    <button class="modal-close" id="closeHelp">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="help-section">
+                        <h4>Port Scanning</h4>
+                        <p>Enter a target IP address or hostname and select the ports to scan. Common ports include web servers (80, 443), SSH (22), and database servers (3306, 5432).</p>
+                    </div>
+                    <div class="help-section">
+                        <h4>Network Discovery</h4>
+                        <p>Discover active hosts on a network by entering a subnet in CIDR notation (e.g., 192.168.1.0/24). This will ping all hosts in the range.</p>
+                    </div>
+                    <div class="help-section">
+                        <h4>Ethical Use</h4>
+                        <p><strong>Important:</strong> Only scan networks and systems you own or have explicit permission to test. Unauthorized scanning may violate laws and policies.</p>
+                    </div>
+                    <div class="help-section">
+                        <h4>Contact Support</h4>
+                        <p><strong>Email:</strong> <a href="mailto:playnexushq@gmail.com">playnexushq@gmail.com</a></p>
+                        <p><strong>Documentation:</strong> <a href="#" onclick="window.electronAPI && window.electronAPI.openExternal && window.electronAPI.openExternal('https://docs.playnexus.com')">docs.playnexus.com</a></p>
+                    </div>
+                    <div class="help-section">
+                        <h4>About</h4>
+                        <p>Powered by <strong>PlayNexus</strong> — Subsystems: ClanForge, BotForge</p>
+                        <p>Owned by <strong>Nortaq</strong></p>
+                        <p>Contact: playnexushq@gmail.com</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
